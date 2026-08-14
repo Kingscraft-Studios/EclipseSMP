@@ -1,0 +1,353 @@
+# =============================================================
+#  Eclipse SMP — main configuration
+#  All values below are safe to tune. Use /eclipse reload after
+#  editing (op only).
+# =============================================================
+
+# Worlds where the eclipse systems (powers, shards, deaths) apply.
+enabled-worlds:
+  - world
+  - world_nether
+  - world_the_end
+
+# -------------------------------------------------------------
+#  Blood Eclipse events
+# -------------------------------------------------------------
+eclipse:
+  enabled: true
+
+  # Natural eclipses fire every interval ± jitter (real minutes).
+  interval-minutes: 180
+  interval-jitter-minutes: 120
+
+  # Countdown before the eclipse becomes fully active.
+  warning-seconds: 60
+  # Warning shown when a player triggers via the Eclipse Totem.
+  trigger-warning-seconds: 15
+
+  # How long the Blood Eclipse lasts (30 minutes).
+  duration-seconds: 1800
+
+  # Cooldown (minutes) between the end of one eclipse and the next
+  # player-triggered one.
+  trigger-cooldown-minutes: 60
+
+  # During the eclipse: freeze time at midnight, force a storm and
+  # grant everyone Night Vision so they can actually fight.
+  freeze-time: true
+  storm: true
+  night-vision: true
+
+  # Announcement looks.
+  title-warning: "&c☀ &fThe Eclipse Approaches &c☾"
+  title-active: "&4☀☾ &cBLOOD ECLIPSE &4☽☀"
+  title-end: "&a☀ &fThe Eclipse has lifted &a☾"
+  bossbar-warning: "&c☀ Blood Eclipse incoming ☾"
+  bossbar-active: "&4☀☾ &cBLOOD ECLIPSE ACTIVE &4☽☀"
+  bossbar-color: RED
+  bossbar-style: SEGMENTED_12
+
+# -------------------------------------------------------------
+#  Sol (Day) powers
+# -------------------------------------------------------------
+sol:
+  sunlight:
+    damage-multiplier: 1.3
+    regeneration-level: 2
+    speed-level: 1
+    fire-ticks: 60
+  darkness:
+    damage-multiplier: 0.8
+    slowness-level: 1
+    weakness-level: 1
+  # Sol counterpart to the Luna dash: double-sneak in sunlight for an
+  # AoE knockback + ignite burst around you.
+  flare:
+    enabled: true
+    cooldown-seconds: 15
+    radius: 4.0
+    fire-ticks: 60
+    # Instant damage dealt to everyone caught in the blast.
+    damage: 3.0
+    knockback-power: 1.2
+    # Two sneak presses within this window trigger the flare.
+    double-tap-window-ms: 400
+    # Minimum gap between the two presses (prevents shift-spam misfires).
+    micro-cooldown-ms: 200
+
+# -------------------------------------------------------------
+#  Luna (Night) powers
+# -------------------------------------------------------------
+luna:
+  darkness:
+    damage-multiplier: 1.3
+    speed-level: 2
+    # Backstab crit on top of the darkness multiplier (1.3 x 1.35 = 1.755).
+    crit-multiplier: 1.35
+    # Attacking from behind within this many degrees triggers the crit.
+    backstab-angle: 60.0
+  sunlight:
+    # Matches Sol's darkness penalty (damage x0.8 + slowness + weakness):
+    # moonlight children take +50% damage in direct daylight.
+    incoming-damage-multiplier: 1.5
+  dash:
+    enabled: true
+    cooldown-seconds: 15
+    invisibility-seconds: 3
+    # Hide the player's armor + held items from other players during the dash
+    # (packet-level, via PacketEvents) while keeping the gear fully equipped
+    # and functional server-side. Requires the packetevents plugin.
+    hide-equipment: true
+    # Also hide your own armor + held item from your own client during the dash.
+    # With this on you won't see your own weapon/armor for the dash's duration
+    # (fully invisible even in third-person); with it off, other players still
+    # see you fully invisible, but you keep your own weapon visible.
+    hide-equipment-self: false
+    power: 1.4
+    height: 0.35
+    # Two sneak presses within this window trigger the dash.
+    double-tap-window-ms: 500
+    # Minimum gap between the two presses (prevents shift-spam misfires).
+    micro-cooldown-ms: 50
+
+# -------------------------------------------------------------
+#  Eclipse combined ultra-state
+# -------------------------------------------------------------
+eclipse-powers:
+  damage-multiplier: 1.5
+  speed-level: 2
+  regeneration-level: 2
+  # Each player gets one random 'surge' when the eclipse starts:
+  # 0 = extra damage, 1 = extra speed, 2 = extra regeneration.
+  surge-damage-multiplier: 1.25
+
+# -------------------------------------------------------------
+#  Eclipse Shards
+# -------------------------------------------------------------
+shards:
+  item-material: AMETHYST_SHARD
+  custom-model-data: 14000
+  # PvP drop during an eclipse: base + per-victim-gear bonus.
+  base-drop: 2
+  bonus-per-gear: 1
+  max-drop: 6
+  # Extra shards when killing the opposite allegiance.
+  alignment-bonus: 1
+
+  # New players start with this many shards in their bank.
+  starting-bank: 5
+  # Percentage of CARRIED shards that drop on the ground on ANY death.
+  carried-drop-percent: 100
+  # Bank shards lost on a natural death (always dropped as a physical item).
+  natural-death-loss: 1
+  # Bank shards transferred to the killer on a PvP kill outside an eclipse.
+  non-eclipse-pvp-loss: 1
+  # When the bank drops to or below this value the player is eliminated.
+  eliminate-at: -5
+
+# -------------------------------------------------------------
+#  Elimination (death ban & grace)
+# -------------------------------------------------------------
+elimination:
+  enabled: true
+  # How long an eliminated player is banned from the server.
+  ban-minutes: 1440
+  # Bank value restored once the ban expires (the +5 is for new players only).
+  reset-to: 0
+
+# -------------------------------------------------------------
+#  Eclipse gear
+# -------------------------------------------------------------
+gear:
+  max-tier: 5
+  # Craft Eclipse gear from a diamond OR netherite piece. The result keeps the
+  # material you put in (diamond in -> diamond Eclipse gear, netherite in ->
+  # netherite Eclipse gear). Material is fixed at craft time and never converts.
+  netherite:
+    enabled: true
+  blade:
+    bonus-per-tier: 1.0
+  axe:
+    bonus-per-tier: 1.5
+    slowness-ticks: 40
+  bow:
+    bonus-per-tier: 0.75
+    fire-ticks: 60
+  # Side-specific Eclipse gear passives (sol vs luna).
+  abilities:
+    # Fraction of dealt damage healed on a Luna blade hit in darkness.
+    luna-lifesteal-percent: 0.35
+    sol-blade-multiplier: 1.15
+    sol-axe-multiplier: 1.2
+    sol-bow-multiplier: 1.15
+    luna-bow-multiplier: 1.3
+    # Eclipse bow on-hit effects: Sol arrows ignite, Luna arrows slow.
+    luna-bow-eclipse-slowness-ticks: 60
+    luna-bow-eclipse-slowness-level: 2
+  armor:
+    # Damage reduction per TOTAL equipped armor tier while in darkness/eclipse.
+    # A full tier-5 set (20 tiers) reduces 40% of incoming damage.
+    reduction-per-tier: 0.02
+    set-bonus:
+      regeneration-level: 1
+      # Caps how far the full-set regen scales with total tier, so a max set
+      # can't stack to Regen V+ during the eclipse (previously ~3.2 HP/s).
+      regen-tier-cap: 2
+      speed-level: 1
+      # Full-set bonuses scale +1 level per 5 total armor tiers.
+      sol-strength-level: 1
+      luna-strength-level: 1
+
+# -------------------------------------------------------------
+#  Alignment switching
+# -------------------------------------------------------------
+choose:
+  # Free switches before it costs Eclipse Shards.
+  free-switches: 1
+  # Shard bank cost for every switch after the free ones.
+  switch-cost: 20
+
+# -------------------------------------------------------------
+#  Admin debug commands
+#  When enabled (true), unlocks the /eclipse debug subcommands
+#  for anyone with the eclipse.smp.admin permission.
+# -------------------------------------------------------------
+debug:
+  enabled: false
+
+# -------------------------------------------------------------
+#  Discord webhook (async, non-blocking)
+#  role-id: set a Discord role ID to ping it when an eclipse starts.
+# -------------------------------------------------------------
+discord-webhook:
+  enabled: false
+  url: ""
+  username: "EclipseSMP"
+  color: 0xFF5555
+  role-id: ""
+
+# -------------------------------------------------------------
+#  Messages (you can override any text here)
+#  {0}, {1}, ... are replaced with dynamic values at runtime.
+#  Color codes use '&' (e.g. &c = red) and hex like &#RRGGBB.
+# -------------------------------------------------------------
+messages:
+  prefix: "&8[&cEclipse&8] &r"
+
+  # Shared state labels
+  phase.warning: "&cWarning — incoming!"
+  phase.active: "&4ACTIVE"
+  phase.cooldown: "&7Cooling down"
+  phase.waiting: "&aWaiting"
+  phase.status.warning: "&cWarning — eclipse incoming"
+  phase.status.active: "&4☀☾ BLOOD ECLIPSE ACTIVE"
+  time.unknown: "&c??"
+
+  # Eclipse event announcements
+  eclipse.warning.broadcast: "&4☀ &fThe sky begins to darken... &4☾"
+  eclipse.warning.subtitle: "&7Find shelter or prepare to fight"
+  eclipse.active.broadcast: "&4☀☾ &cThe BLOOD ECLIPSE is here! &4☽☀ &7PvP now drops Eclipse Shards. Death is twice as costly."
+  eclipse.active.subtitle: "&7☀ Shards drop on PvP kills ☾"
+  eclipse.ended.dropped: "&a☀ &fThe Blood Eclipse has lifted. &d{0} &fEclipse Shards were claimed."
+  eclipse.ended.none: "&a☀ &fThe Blood Eclipse has lifted."
+  eclipse.ended.subtitle: "&7The sun and moon part ways"
+
+  # Totem / trigger reasons
+  trigger.underway: "&cThe Blood Eclipse is already underway."
+  trigger.world-disabled: "&cEclipses cannot be triggered in this world."
+  trigger.cooldown: "&cThe Blood Eclipse is still cooling down. &7{0}m until it can be summoned again."
+  trigger.force-already: "&cEclipse is already active."
+  totem.recharging: "&cThe Totem is still recharging..."
+  totem.summoned: "&4☀ &cYou shatter the Totem. The Blood Eclipse is summoned! &4☾"
+
+  # Power action bar
+  power.no-allegiance: "&cChoose your allegiance: &e/eclipse choose"
+  power.eclipse: "&4☀☾ &cBlood Eclipse &7| {0} {1}"
+  power.sol: "&e☀ Sol &7| {0}"
+  power.luna: "&8☾ Luna &7| {0}"
+  surge.damage: "&4Damage Surge"
+  surge.speed: "&bSpeed Surge"
+  surge.regen: "&dRegen Surge"
+
+  # Abilities
+  dash.ready: "&8☾ &7Dash ready in &f{0}&7s"
+  dash.fired: "&8☾ &7Vanish dash &fready in &7{0}s"
+  flare.ready: "&6☀ &7Solar Flare ready in &f{0}&7s"
+  flare.fired: "&6☀ &7Solar Flare &fready in &7{0}s"
+
+  # Anvil upgrades
+  anvil.need-shards: "&cYou need &d{0} Eclipse Shards&c to upgrade."
+  anvil.choose-allegiance: "&cChoose an allegiance before crafting Eclipse gear: &e/eclipse choose"
+  anvil.upgraded: "&aUpgraded to &4Tier {0}&a!"
+  anvil.cursor-full: "&cEmpty your cursor first."
+
+  # Shards
+  shards.pvp-claim: "&c☀☾ &f{0} &7claimed &d{1} Eclipse Shards &7from &f{2} &7{3}"
+  shards.pvp-loss-killer: "&aYou claimed &d{0} Eclipse Shard &afrom &f{1}&a."
+  shards.pvp-loss-victim: "&c{0} &7claimed &d{1} &7Eclipse Shard from your bank."
+  shards.natural-death: "&cYou lost &d{0} Eclipse Shard &cfrom your bank. It dropped at your location."
+  shards.deposited: "&aDeposited &d{0} Eclipse Shards &ainto your bank."
+  shards.no-carried: "&cYou have no carried Eclipse Shards to deposit."
+  shards.withdrew: "&aWithdrew &d{0} Eclipse Shard &afrom your bank."
+  shards.bank-empty: "&cYour bank is empty."
+
+  # Elimination
+  elimination.broadcast: "&4☀☾ &c{0} &4was eliminated! &7Their shard bank hit the limit. Banned for &f{1} &7minutes."
+  elimination.kick: "&4You were eliminated!\n&7Your Eclipse Shard bank dropped too low.\n&cYou may rejoin in {0} minutes."
+  elimination.login-kick: "&4You were eliminated!\n&cYou may rejoin in {0} minutes."
+  elimination.still-banned: "&cYou may rejoin in {0} minutes."
+  elimination.ban-ended: "&aYour elimination ban has ended. Your shard bank was reset to &d{0}&a."
+
+  # Allegiance switching
+  choose.already-follower: "&eYou are already a follower of {0}."
+  choose.insufficient: "&cYou need &d{0} Eclipse Shards &cin your bank to switch allegiances."
+  choose.success.sol: "&6You are now a &6Child of the Sun&r!"
+  choose.success.luna: "&8You are now a &8Child of the Moon&r!"
+  choose.title.sol: "&6☀ Sol"
+  choose.title.luna: "&8☾ Luna"
+  choose.subtitle: "&7Your powers now follow the {0}"
+  choose.reforged: "&7Your Eclipse gear has been reforged to {0}."
+
+  # Commands
+  cmd.only-players: "&cOnly players can use this command."
+  cmd.only-players-recipe: "&cOnly players can open the recipe book."
+  cmd.console-usage: "&7Use /eclipse <choose|status|shards|top|admin>"
+  cmd.no-permission: "&cYou don't have permission."
+  cmd.invalid-amount: "&cInvalid amount."
+  cmd.deposited: "&aDeposited &d{0} Eclipse Shards&a."
+  cmd.no-carried: "&cYou have no carried Eclipse Shards."
+  cmd.withdrew: "&aWithdrew &d{0} Eclipse Shards&a from your bank."
+  cmd.not-enough: "&cYou don't have that many shards banked."
+  cmd.shards.help: "&7You have &d{0} &7shards banked. &e/eclipse shards deposit [all|<n>]&7 | &e/eclipse shards withdraw <n>"
+  cmd.shards.usage: "&cUsage: /eclipse shards <deposit|withdraw> [amount]"
+  cmd.top.empty: "&7No shards have been collected yet. Wait for the Blood Eclipse!"
+  cmd.top.header: "&6&l☀☾ Top Eclipse Shard Collectors ☽☀"
+  cmd.top.entry: "&7{0}. &f{1} &7- &d{2} shards &7({3} kills)"
+  cmd.status.separator: "&7&m---------------------------------"
+  cmd.status.header: "&6&lEclipse SMP &8- &7{0}"
+  cmd.status.allegiance: "&7Allegiance: &f{0}"
+  cmd.status.power: "&7Power state: &f{0}"
+  cmd.status.phase: "&7Eclipse phase: {0}"
+  cmd.status.next: "&7Next eclipse in: &f{0}"
+  cmd.status.bank: "&7Shard bank: &d{0}"
+  cmd.status.earned: "&7Shards earned: &d{0}"
+  cmd.status.kills: "&7Kills: &c{0}"
+  cmd.help.header: "&6&lEclipse SMP Commands:"
+  cmd.help.usage: "&e/eclipse &7- open menu"
+  cmd.help.choose: "&e/eclipse choose &7- pick or switch allegiance"
+  cmd.help.status: "&e/eclipse status &7- your state & the eclipse phase"
+  cmd.help.shards: "&e/eclipse shards deposit|withdraw <n> &7- manage your bank"
+  cmd.help.top: "&e/eclipse top &7- shard leaderboard"
+  cmd.help.deposit: "&e/deposit [all|<n>] &7- deposit carried shards"
+  cmd.help.withdraw: "&e/withdraw [n] &7- withdraw shards from your bank"
+  cmd.help.admin: "&e/eclipse admin &7- admin controls"
+  cmd.admin.header: "&6&lEclipse Admin Commands:"
+  cmd.admin.trigger: "&e/eclipse admin trigger &7- start the Blood Eclipse now"
+  cmd.admin.cancel: "&e/eclipse admin cancel &7- stop an ongoing eclipse"
+  cmd.admin.reload: "&e/eclipse admin reload &7- reload config"
+  cmd.admin.debug: "&e/eclipse admin debug &7- debug commands (debug.enabled)"
+  cmd.admin.unknown: "&cUnknown admin command. Use &e/eclipse admin trigger|cancel|reload{0}&c."
+  cmd.debug.disabled: "&cDebug commands are disabled. Enable &e'debug.enabled' &cin config.yml."
+  cmd.eclipse-already: "&cAn eclipse is already underway."
+  cmd.eclipse-cancelled: "&aEclipse cancelled."
+  cmd.reloaded: "&aConfiguration reloaded."

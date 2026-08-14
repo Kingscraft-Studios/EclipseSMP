@@ -1,0 +1,44 @@
+name: EclipseSMP
+version: '${version}'
+main: net.kingscraft.eclipseSMP.EclipseSMP
+api-version: '26.2'
+load: POSTWORLD
+depend: [packetevents]
+authors: [Kingscraft Studios]
+description: Day/Night SMP with dynamic Sol/Luna powers and Blood Eclipses.
+
+commands:
+  eclipse:
+    description: Eclipse SMP main command
+    usage: |
+      /eclipse
+      /eclipse choose
+      /eclipse status
+      /eclipse shards [deposit <all|amount>|withdraw <amount>]
+      /eclipse top
+      /eclipse admin <trigger|cancel|reload|debug>
+    permission: eclipse.smp.use
+  top:
+    description: Eclipse SMP shard leaderboard
+    usage: /top
+    permission: eclipse.smp.use
+  deposit:
+    description: Deposit carried Eclipse Shards into your bank
+    usage: /deposit [all|<amount>]
+    permission: eclipse.smp.use
+  withdraw:
+    description: Withdraw Eclipse Shards from your bank
+    usage: /withdraw [<amount>]
+    permission: eclipse.smp.use
+  recipe:
+    description: View Eclipse crafting and anvil recipes
+    usage: /recipe
+    permission: eclipse.smp.use
+
+permissions:
+  eclipse.smp.use:
+    description: Use the Eclipse SMP commands
+    default: true
+  eclipse.smp.admin:
+    description: Use Eclipse SMP admin commands
+    default: op
