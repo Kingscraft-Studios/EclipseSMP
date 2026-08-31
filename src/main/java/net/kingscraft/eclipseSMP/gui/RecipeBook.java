@@ -200,32 +200,44 @@ public final class RecipeBook implements Listener {
         Inventory inv = base(c(MAIN_TITLE));
         inv.setItem(4, glint(header()));
 
-        // Row 1 - totem + Eclipse gear
-        inv.setItem(10, mainItem(player, byKey("totem")));
-        inv.setItem(11, mainItem(player, byKey("blade")));
-        inv.setItem(12, mainItem(player, byKey("axe")));
-        inv.setItem(13, mainItem(player, byKey("bow")));
-        inv.setItem(14, mainItem(player, byKey("helmet")));
-        inv.setItem(15, mainItem(player, byKey("chestplate")));
-        inv.setItem(16, mainItem(player, byKey("leggings")));
+        // Row 1 — Eclipse gear (crafting)
+        inv.setItem(13, categoryLabel(Material.DIAMOND_SWORD, "&f&lEclipse Gear",
+                List.of("&7Craft with a diamond/netherite piece",
+                        "&7surrounded by &dEclipse Shards&7.")));
+        inv.setItem(10, mainItem(player, byKey("blade")));
+        inv.setItem(11, mainItem(player, byKey("axe")));
+        inv.setItem(12, mainItem(player, byKey("bow")));
+        inv.setItem(15, mainItem(player, byKey("helmet")));
+        inv.setItem(16, mainItem(player, byKey("chestplate")));
+        inv.setItem(24, mainItem(player, byKey("leggings")));
+        inv.setItem(25, mainItem(player, byKey("boots")));
 
-        // Row 2 - boots, shard forging, anvil upgrades
-        inv.setItem(20, mainItem(player, byKey("boots")));
-        inv.setItem(21, mainItem(player, byKey("shard")));
-        inv.setItem(22, glint(anvilEntryItem()));
+        // Row 3 — special items
+        inv.setItem(31, categoryLabel(Material.CRAFTING_TABLE, "&6&lSpecial Crafting",
+                List.of("&7The Totem, shard forging and",
+                        "&7anvil upgrades.")));
+        inv.setItem(28, mainItem(player, byKey("totem")));
+        inv.setItem(29, mainItem(player, byKey("shard")));
+        inv.setItem(30, glint(anvilEntryItem()));
 
-        // Section: config-gated vanilla rebalances
-        int slot = 29;
+        // Row 4 — vanilla rebalances, packed left-to-right with one label
         boolean anyTweak = false;
         for (RecipeEntry entry : entries) {
-            if (!entry.key().startsWith("tw_")) continue;
-            anyTweak = true;
-            if (slot <= 32) {
-                inv.setItem(slot++, mainItem(player, entry));
+            if (entry.key().startsWith("tw_")) {
+                anyTweak = true;
+                break;
             }
         }
         if (anyTweak) {
-            inv.setItem(24, sectionLabel());
+            inv.setItem(37, categoryLabel(Material.SMITHING_TABLE, "&6&lVanilla Rebalances",
+                    List.of("&7Custom takes on classic recipes,",
+                            "&7enabled server-wide.")));
+            int slot = 38;
+            for (RecipeEntry entry : entries) {
+                if (!entry.key().startsWith("tw_")) continue;
+                if (slot > 44) break;
+                inv.setItem(slot++, mainItem(player, entry));
+            }
         }
         player.openInventory(inv);
     }
@@ -235,24 +247,17 @@ public final class RecipeBook implements Listener {
         ItemMeta meta = item.getItemMeta();
         meta.setDisplayName(c("&d&l☀ Eclipse Recipes ☾"));
         meta.setLore(List.of(
-                c("&7Top rows: &fEclipse gear&7, the &4Eclipse Totem&7,"),
-                c("&dshard forging &7and &eanvil upgrades&7."),
-                c("&7Bottom row: &6vanilla rebalances &7when enabled."),
+                c("&7Each section groups its recipes together."),
+                c("&eEclipse Gear&7, &6Special Crafting &7and"),
+                c("&6vanilla rebalances&7, when enabled."),
                 "",
                 c("&eClick an item to view its recipe.")));
         item.setItemMeta(meta);
         return item;
     }
 
-    private ItemStack sectionLabel() {
-        ItemStack item = new ItemStack(Material.CRAFTING_TABLE);
-        ItemMeta meta = item.getItemMeta();
-        meta.setDisplayName(c("&6&lVanilla Rebalances"));
-        meta.setLore(List.of(
-                c("&7Custom versions of classic recipes,"),
-                c("&7enabled server-wide.")));
-        item.setItemMeta(meta);
-        return item;
+    private ItemStack categoryLabel(Material material, String name, List<String> lore) {
+        return glint(info(material, name, lore));
     }
 
     private void openDetail(Player player, String key, String material) {
@@ -335,23 +340,30 @@ public final class RecipeBook implements Listener {
         Material current = materialFor(entry, material);
         ItemStack base = displayResult(player, entry, false);
         ItemStack t1 = current == entry.alt() ? ShardItem.withMaterial(base, entry.alt()) : base;
-        inv.setItem(20, t1);
+
+        // Single sample upgrade: any piece + 1 shard -> next tier.
+        inv.setItem(13, labelItem(ShardItem.withTier(t1, 2),
+                "&f&lYour Eclipse " + entry.label(),
+                List.of("&7This shows &fTier 1 + 1 shard&7.",
+                        "&7Your piece can be any tier.",
+                        "&7Upgrading always raises it by 1.", "",
+                        "&dTip: &7put your &fcurrent&7 " + entry.label()
+                        + " in an anvil.")));
+        inv.setItem(20, ShardItem.withTier(t1, 1));
         inv.setItem(21, arrow());
         inv.setItem(22, ShardItem.createShard(1));
         inv.setItem(23, arrow());
         inv.setItem(24, ShardItem.withTier(t1, 2));
 
         int maxTier = plugin.getSettings().getMaxTier();
-        for (int tier = 1; tier <= Math.min(maxTier, 5); tier++) {
-            inv.setItem(27 + tier, ShardItem.withTier(t1, tier));
-        }
         ItemStack bracket = pane(Material.ORANGE_STAINED_GLASS_PANE);
-        inv.setItem(27, bracket);
-        inv.setItem(33, bracket);
+        inv.setItem(19, bracket);
+        inv.setItem(25, bracket);
 
         inv.setItem(40, info(Material.PAPER, "&7How tier upgrades work",
-                List.of("&7Place your Eclipse gear in an anvil",
-                        "&7with &dEclipse Shards &7in the right slot.",
+                List.of("&7In an &eanvil&7, put your &fEclipse",
+                        "&7gear &7without any shards first,",
+                        "&7then add &dEclipse Shards&7.",
                         "",
                         "&d1 Eclipse Shard &7= &f1 Tier",
                         "&7Excess shards are returned.",
@@ -431,6 +443,21 @@ public final class RecipeBook implements Listener {
 
     private ItemStack info(Material material, String name, List<String> lore) {
         return button(material, name, lore, null, null, null);
+    }
+
+    /** A copy of {@code base} with a custom display name and lore added. */
+    private ItemStack labelItem(ItemStack base, String name, List<String> lore) {
+        ItemStack item = base.clone();
+        ItemMeta meta = item.getItemMeta();
+        meta.setDisplayName(c(name));
+        if (lore != null && !lore.isEmpty()) {
+            List<String> merged = new ArrayList<>();
+            if (meta.hasLore()) merged.addAll(meta.getLore());
+            for (String line : lore) merged.add(c(line));
+            meta.setLore(merged);
+        }
+        item.setItemMeta(meta);
+        return item;
     }
 
     private ItemStack button(Material material, String name, List<String> lore,

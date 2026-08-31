@@ -142,7 +142,7 @@ public final class EclipseSMP extends JavaPlugin {
 
     private void registerCommand() {
         EclipseCommand executor = new EclipseCommand(this);
-        for (String name : new String[]{"eclipse", "top", "deposit", "withdraw", "recipes"}) {
+        for (String name : new String[]{"eclipse", "top", "deposit", "withdraw", "recipes", "grace", "end"}) {
             PluginCommand cmd = getCommand(name);
             if (cmd != null) {
                 cmd.setExecutor(executor);

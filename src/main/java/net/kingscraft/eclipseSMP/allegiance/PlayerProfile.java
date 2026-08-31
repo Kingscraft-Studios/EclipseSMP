@@ -59,6 +59,15 @@ public final class PlayerProfile {
         return true;
     }
 
+    /** Withdraws {@code amount} but never lets the bank fall below {@code floor}
+     *  (normally the elimination limit). Returns false when there isn't enough
+     *  above the floor. */
+    public boolean removeBank(int amount, int floor) {
+        if (bank - amount < floor) return false;
+        bank -= amount;
+        return true;
+    }
+
     public int getTotalEarned() {
         return totalEarned;
     }

@@ -261,10 +261,11 @@ public final class ShardManager implements Listener {
         return deposited;
     }
 
-    /** Withdraws shards from the bank into the inventory. Returns false if insufficient. */
+    /** Withdraws shards from the bank into the inventory. Returns false if insufficient.
+     *  The bank is allowed to drop toward the elimination limit (never below it). */
     public boolean withdrawShards(Player player, int amount) {
         PlayerProfile profile = plugin.getProfileManager().get(player);
-        if (!profile.removeBank(amount)) return false;
+        if (!profile.removeBank(amount, plugin.getSettings().getEliminateAt())) return false;
         giveShards(player, amount);
         plugin.getProfileManager().save(profile);
         return true;
