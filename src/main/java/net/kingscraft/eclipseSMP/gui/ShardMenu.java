@@ -38,6 +38,7 @@ public final class ShardMenu implements Listener {
         inv.setItem(1, bankItem(player));
         inv.setItem(2, withdrawItem());
         inv.setItem(4, statusItem(player));
+        inv.setItem(6, guideItem(player));
 
         player.openInventory(inv);
     }
@@ -77,6 +78,7 @@ public final class ShardMenu implements Listener {
                 open(player);
             }
             case COMPASS -> open(player);
+            case BOOK -> plugin.getAllegianceGuide().open(player);
             default -> {
             }
         }
@@ -129,6 +131,21 @@ public final class ShardMenu implements Listener {
         meta.setLore(List.of(
                 color("&7Withdraw &f1&7 shard from your bank."),
                 color("&7For more: &f/withdraw <amount>")
+        ));
+        item.setItemMeta(meta);
+        return item;
+    }
+
+    private ItemStack guideItem(Player player) {
+        ItemStack item = new ItemStack(Material.BOOK);
+        ItemMeta meta = item.getItemMeta();
+        PlayerProfile profile = plugin.getProfileManager().get(player);
+        String side = profile.hasAllegiance() ? profile.getAllegiance().getDisplayName() : "Your Allegiance";
+        meta.setDisplayName(color("&e&l" + side + " Guide"));
+        meta.setLore(List.of(
+                color("&7Every power your side grants,"),
+                color("&7gear passives and eclipse effects."),
+                color("&7Click to open.")
         ));
         item.setItemMeta(meta);
         return item;

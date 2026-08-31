@@ -16,6 +16,7 @@ import org.bukkit.event.player.PlayerJoinEvent;
 import org.bukkit.event.player.PlayerLoginEvent;
 import org.bukkit.inventory.ItemStack;
 
+import java.util.Comparator;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.UUID;
@@ -23,8 +24,14 @@ import java.util.concurrent.ConcurrentHashMap;
 
 public final class ShardManager implements Listener {
 
+    private record Hit(double damage, long time) {
+        Hit plus(double extra) {
+            return new Hit(damage + extra, time);
+        }
+    }
+
     private final EclipseSMP plugin;
-    private final Map<UUID, Map<UUID, Double>> attribution = new ConcurrentHashMap<>();
+    private final Map<UUID, Map<UUID, Hit>> attribution = new ConcurrentHashMap<>();
     private long droppedThisEclipse;
 
     public ShardManager(EclipseSMP plugin) {
@@ -39,8 +46,21 @@ public final class ShardManager implements Listener {
         if (!plugin.getSettings().isWorldEnabled(victim.getWorld().getName())) return;
         if (attacker.equals(victim)) return;
 
-        attribution.computeIfAbsent(victim.getUniqueId(), k -> new HashMap<>())
-                .merge(attacker.getUniqueId(), event.getFinalDamage(), Double::sum);
+        Map<UUID, Hit> hits = attribution.computeIfAbsent(victim.getUniqueId(), k -> new HashMap<>());
+        prune(victim.getUniqueId(), System.currentTimeMillis());
+        Hit existing = hits.get(attacker.getUniqueId());
+        Hit merged = existing == null
+                ? new Hit(event.getFinalDamage(), System.currentTimeMillis())
+                : existing.plus(event.getFinalDamage());
+        hits.put(attacker.getUniqueId(), merged);
+    }
+
+    /** Drops combat tags older than the configured window so stale hits can never steal kill credit. */
+    private void prune(UUID victim, long now) {
+        Map<UUID, Hit> hits = attribution.get(victim);
+        if (hits == null) return;
+        long window = plugin.getSettings().getCombatTagMillis();
+        hits.values().removeIf(hit -> now - hit.time() > window);
     }
 
     /** Resolves the attacking player, following projectile shots back to their shooter. */
@@ -187,10 +207,11 @@ public final class ShardManager implements Listener {
     }
 
     private Player topAttacker(Player victim) {
-        Map<UUID, Double> map = attribution.get(victim.getUniqueId());
+        prune(victim.getUniqueId(), System.currentTimeMillis());
+        Map<UUID, Hit> map = attribution.get(victim.getUniqueId());
         if (map == null || map.isEmpty()) return null;
         UUID top = map.entrySet().stream()
-                .max(Map.Entry.comparingByValue())
+                .max(Map.Entry.comparingByValue(Comparator.comparingDouble(Hit::damage)))
                 .map(Map.Entry::getKey)
                 .orElse(null);
         return top == null ? null : plugin.getServer().getPlayer(top);

@@ -251,11 +251,15 @@ public final class ShardItem {
 
     private static void applyAttributes(ItemMeta meta, String kind, boolean armor,
                                         Material material, int tier) {
+        // NOTE: writing any custom attribute modifier REPLACES the item's vanilla
+        // stat block, so every reforge must re-add the vanilla base values itself.
         if (KIND_BLADE.equals(kind)) {
-            addAttr(meta, Attribute.ATTACK_DAMAGE, bladeDamagePerTier() * tier,
+            addAttr(meta, Attribute.ATTACK_DAMAGE,
+                    baseWeaponDamage(material) + bladeDamagePerTier() * tier,
                     EquipmentSlotGroup.MAINHAND, "damage_blade");
         } else if (KIND_AXE.equals(kind)) {
-            addAttr(meta, Attribute.ATTACK_DAMAGE, axeDamagePerTier() * tier,
+            addAttr(meta, Attribute.ATTACK_DAMAGE,
+                    baseWeaponDamage(material) + axeDamagePerTier() * tier,
                     EquipmentSlotGroup.MAINHAND, "damage_axe");
         } else if (armor) {
             EquipmentSlotGroup slot = switch (material) {
@@ -264,9 +268,39 @@ public final class ShardItem {
                 case DIAMOND_LEGGINGS, NETHERITE_LEGGINGS -> EquipmentSlotGroup.LEGS;
                 default -> EquipmentSlotGroup.FEET;
             };
-            addAttr(meta, Attribute.ARMOR, tier, slot, "armor");
-            addAttr(meta, Attribute.ARMOR_TOUGHNESS, 0.5 * tier, slot, "toughness");
+            addAttr(meta, Attribute.ARMOR, baseArmor(material) + tier, slot, "armor");
+            addAttr(meta, Attribute.ARMOR_TOUGHNESS,
+                    baseToughness(material) + 0.5 * tier, slot, "toughness");
         }
+    }
+
+    /** Vanilla armor points of the base piece (diamond == netherite). */
+    private static double baseArmor(Material material) {
+        return switch (material) {
+            case DIAMOND_CHESTPLATE, NETHERITE_CHESTPLATE -> 8;
+            case DIAMOND_LEGGINGS, NETHERITE_LEGGINGS -> 6;
+            default -> 3;
+        };
+    }
+
+    /** Vanilla toughness of the base piece: diamond 2, netherite 3. */
+    private static double baseToughness(Material material) {
+        return isNetherite(material) ? 3 : 2;
+    }
+
+    /** Vanilla attack-damage modifier of the base weapon (diamond sword +6, netherite +7, etc.). */
+    private static double baseWeaponDamage(Material material) {
+        boolean netherite = isNetherite(material);
+        if (material.name().endsWith("_AXE")) return netherite ? 9 : 8;
+        return netherite ? 7 : 6;
+    }
+
+    private static boolean isNetherite(Material material) {
+        return switch (material) {
+            case NETHERITE_SWORD, NETHERITE_AXE, NETHERITE_HELMET,
+                 NETHERITE_CHESTPLATE, NETHERITE_LEGGINGS, NETHERITE_BOOTS -> true;
+            default -> false;
+        };
     }
 
     private static void addAttr(ItemMeta meta, Attribute attribute, double amount,

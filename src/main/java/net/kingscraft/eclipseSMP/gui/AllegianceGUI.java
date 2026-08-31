@@ -15,6 +15,7 @@ import org.bukkit.inventory.Inventory;
 import org.bukkit.inventory.ItemStack;
 import org.bukkit.inventory.meta.ItemMeta;
 
+import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -48,6 +49,7 @@ public final class AllegianceGUI implements Listener {
         for (int i = 0; i < 27; i++) {
             inv.setItem(i, pane());
         }
+        inv.setItem(4, costInfoItem(null));
         inv.setItem(11, allegianceItem(Allegiance.SOL, null));
         inv.setItem(15, allegianceItem(Allegiance.LUNA, null));
         player.openInventory(inv);
@@ -61,6 +63,7 @@ public final class AllegianceGUI implements Listener {
         Allegiance current = profile.getAllegiance();
         Allegiance other = current == Allegiance.SOL ? Allegiance.LUNA : Allegiance.SOL;
         inv.setItem(11, currentItem(current));
+        inv.setItem(13, costInfoItem(profile));
         inv.setItem(15, allegianceItem(other, profile));
         player.openInventory(inv);
     }
@@ -112,6 +115,33 @@ public final class AllegianceGUI implements Listener {
         ItemMeta meta = item.getItemMeta();
         meta.setDisplayName(color("&7Current: &f" + current.getDisplayName() + " " + current.getSymbol()));
         meta.setLore(List.of(color("&7You follow the " + (current == Allegiance.SOL ? "day" : "night") + ".")));
+        item.setItemMeta(meta);
+        return item;
+    }
+
+    /** Explains the switch pricing: first switch free, then the configured shard cost. */
+    private ItemStack costInfoItem(PlayerProfile profile) {
+        int free = plugin.getSettings().getFreeSwitches();
+        int cost = plugin.getSettings().getSwitchCost();
+        ItemStack item = new ItemStack(Material.PAPER);
+        ItemMeta meta = item.getItemMeta();
+        meta.setDisplayName(color("&e&lSwitch Rules"));
+
+        List<String> lore = new ArrayList<>();
+        lore.add(color("&7Switching sides costs shards:"));
+        if (profile == null || profile.getSwitches() < free) {
+            lore.add(color("&7- Your first switch is &afree&7."));
+        } else {
+            lore.add(color("&7- Your free switch is &cused up&7."));
+        }
+        lore.add(color("&7- After that: &d" + cost + " Eclipse Shards &7per switch."));
+        lore.add(color("&7- Gear reforges to the new side &fautomatically&7."));
+        if (profile != null) {
+            lore.add("");
+            lore.add(color("&7Your switches used: &f" + profile.getSwitches()));
+            lore.add(color("&7Shard bank: &d" + profile.getBank()));
+        }
+        meta.setLore(lore);
         item.setItemMeta(meta);
         return item;
     }

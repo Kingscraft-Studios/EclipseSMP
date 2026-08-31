@@ -53,7 +53,14 @@ public final class EclipseManager implements Listener {
 
     public void start() {
         createBar();
-        scheduleNextNatural();
+        long saved = plugin.getSaveStore().getLong("eclipse-next-natural-at", 0);
+        long now = System.currentTimeMillis();
+        if (saved > now) {
+            // Resume the exact schedule persisted before the last restart.
+            scheduleWarningIn(saved - now);
+        } else {
+            scheduleNextNatural();
+        }
         tickTask = new BukkitRunnable() {
             @Override
             public void run() {
@@ -78,14 +85,18 @@ public final class EclipseManager implements Listener {
         long jitter = random.nextLong(0, settings.getEclipseJitterMillis() + 1);
         long delayMillis = settings.getEclipseIntervalMillis() + jitter;
         nextNaturalAt = System.currentTimeMillis() + delayMillis;
-        long ticks = delayMillis / 1000 * 20;
+        // Persist so restarts don't reroll (or lose) the countdown.
+        plugin.getSaveStore().set("eclipse-next-natural-at", nextNaturalAt);
+        scheduleWarningIn(delayMillis);
+    }
 
+    private void scheduleWarningIn(long delayMillis) {
         cancelTask(scheduleTask);
         scheduleTask = Bukkit.getScheduler().runTaskLater(plugin, () -> {
             if (phase == EclipsePhase.IDLE || phase == EclipsePhase.COOLDOWN) {
-                beginWarning(settings.getEclipseWarningSeconds());
+                beginWarning(plugin.getSettings().getEclipseWarningSeconds());
             }
-        }, Math.max(1, ticks));
+        }, Math.max(1, delayMillis / 1000 * 20));
     }
 
     /** Returns null on success, otherwise a reason message. */

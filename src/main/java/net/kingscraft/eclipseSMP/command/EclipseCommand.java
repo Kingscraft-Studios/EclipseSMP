@@ -5,6 +5,8 @@ import net.kingscraft.eclipseSMP.allegiance.PlayerProfile;
 import net.kingscraft.eclipseSMP.eclipse.EclipsePhase;
 import net.kingscraft.eclipseSMP.environment.LightState;
 import net.kingscraft.eclipseSMP.environment.SunlightDetector;
+import net.kingscraft.eclipseSMP.mace.MaceControl;
+import org.bukkit.OfflinePlayer;
 import org.bukkit.Bukkit;
 import org.bukkit.command.Command;
 import org.bukkit.command.CommandExecutor;
@@ -37,13 +39,19 @@ public final class EclipseCommand implements CommandExecutor, TabCompleter {
         if (name.equals("withdraw")) {
             return aliasWithdraw(sender, args);
         }
-        if (name.equals("recipe")) {
+        if (name.equals("recipes")) {
             if (!(sender instanceof Player player)) {
                 tell(sender, "cmd.only-players-recipe", "&cOnly players can open the recipe book.");
                 return true;
             }
             plugin.getRecipeBook().open(player);
             return true;
+        }
+        if (name.equals("grace")) {
+            return grace(sender, args);
+        }
+        if (name.equals("end")) {
+            return endTimer(sender, args);
         }
 
         if (args.length == 0) {
@@ -79,6 +87,65 @@ public final class EclipseCommand implements CommandExecutor, TabCompleter {
             return true;
         }
         return deposit(player, args.length >= 1 ? args[0] : null);
+    }
+
+    /** /grace [minutes|cancel] — disables PvP for a while. */
+    private boolean grace(CommandSender sender, String[] args) {
+        if (!sender.hasPermission("eclipse.smp.admin")) {
+            tell(sender, "cmd.no-permission", "&cYou don't have permission.");
+            return true;
+        }
+        if (args.length >= 1 && args[0].equalsIgnoreCase("cancel")) {
+            if (plugin.getSeasonManager().cancelGrace()) {
+                plugin.getMessages().broadcast("grace.cancelled",
+                        "&eGrace period cancelled. PvP is enabled.");
+            } else {
+                tell(sender, "grace.not-active", "&7No grace period is active.");
+            }
+            return true;
+        }
+        int minutes = plugin.getSettings().getSeasonGraceMinutes();
+        if (args.length >= 1) {
+            try {
+                minutes = Integer.parseInt(args[0]);
+            } catch (NumberFormatException e) {
+                tell(sender, "cmd.invalid-amount", "&cInvalid amount.");
+                return true;
+            }
+            if (minutes <= 0) {
+                tell(sender, "cmd.invalid-amount", "&cInvalid amount.");
+                return true;
+            }
+        }
+        plugin.getSeasonManager().startGrace(minutes * 60_000L);
+        return true;
+    }
+
+    /** /end [minutes] — schedules the opening of the End portals. */
+    private boolean endTimer(CommandSender sender, String[] args) {
+        if (!sender.hasPermission("eclipse.smp.admin")) {
+            tell(sender, "cmd.no-permission", "&cYou don't have permission.");
+            return true;
+        }
+        if (!plugin.getSeasonManager().arePortalsLocked()) {
+            tell(sender, "end.already-open", "&cThe End is already open.");
+            return true;
+        }
+        int minutes = plugin.getSettings().getSeasonEndTimerMinutes();
+        if (args.length >= 1) {
+            try {
+                minutes = Integer.parseInt(args[0]);
+            } catch (NumberFormatException e) {
+                tell(sender, "cmd.invalid-amount", "&cInvalid amount.");
+                return true;
+            }
+            if (minutes <= 0) {
+                tell(sender, "cmd.invalid-amount", "&cInvalid amount.");
+                return true;
+            }
+        }
+        plugin.getSeasonManager().scheduleEndOpening(minutes * 60_000L);
+        return true;
     }
 
     private boolean aliasWithdraw(CommandSender sender, String[] args) {
@@ -236,6 +303,8 @@ public final class EclipseCommand implements CommandExecutor, TabCompleter {
             tell(sender, "cmd.admin.header", "&6&lEclipse Admin Commands:");
             tell(sender, "cmd.admin.trigger", "&e/eclipse admin trigger &7- start the Blood Eclipse now");
             tell(sender, "cmd.admin.cancel", "&e/eclipse admin cancel &7- stop an ongoing eclipse");
+            tell(sender, "cmd.admin.unban", "&e/eclipse admin unban <player> &7- end an elimination ban");
+            tell(sender, "cmd.admin.mace", "&e/eclipse admin mace <show|n> &7- manage the Mace crafting budget");
             tell(sender, "cmd.admin.reload", "&e/eclipse admin reload &7- reload config");
             if (plugin.getSettings().isDebugEnabled()) {
                 tell(sender, "cmd.admin.debug", "&e/eclipse admin debug &7- debug commands (debug.enabled)");
@@ -245,15 +314,80 @@ public final class EclipseCommand implements CommandExecutor, TabCompleter {
         return switch (args[1].toLowerCase()) {
             case "trigger" -> trigger(sender);
             case "cancel" -> cancel(sender);
+            case "unban" -> unban(sender, args.length >= 3 ? args[2] : null);
+            case "mace" -> mace(sender, shift(args, 2));
             case "reload" -> reload(sender);
             case "debug" -> debug(sender, shift(args, 1));
             default -> {
                 tell(sender, "cmd.admin.unknown",
-                        "&cUnknown admin command. Use &e/eclipse admin trigger|cancel|reload{0}&c.",
+                        "&cUnknown admin command. Use &e/eclipse admin trigger|cancel|unban|mace|reload{0}&c.",
                         plugin.getSettings().isDebugEnabled() ? "|debug" : "");
                 yield true;
             }
         };
+    }
+
+    /** /eclipse admin mace [show|<n>] - inspect or adjust the Mace forging budget. */
+    private boolean mace(CommandSender sender, String[] args) {
+        if (args.length == 0 || args[0].equalsIgnoreCase("show")) {
+            maceStatus(sender);
+            return true;
+        }
+        int delta;
+        try {
+            delta = Integer.parseInt(args[0]);
+        } catch (NumberFormatException e) {
+            tell(sender, "cmd.admin.mace.usage",
+                    "&cUsage: /eclipse admin mace <show|n> &7(positive = mark as already forged, negative = refund budget)");
+            return true;
+        }
+        plugin.getMaceControl().adjustUsed(delta);
+        if (delta >= 0) {
+            tell(sender, "cmd.admin.mace.added", "&aMarked &f{0} &aMace(s) as forged.", delta);
+        } else {
+            tell(sender, "cmd.admin.mace.refunded", "&aRefunded &f{0} &aMace(s) of budget.", -delta);
+        }
+        maceStatus(sender);
+        return true;
+    }
+
+    private void maceStatus(CommandSender sender) {
+        MaceControl control = plugin.getMaceControl();
+        int used = control.usedCount();
+        int budget = plugin.getSettings().getMaceMaxCrafted();
+        String state = plugin.getSettings().isMaceControlEnabled() ? "&aenabled" : "&cdisabled";
+        tell(sender, "cmd.admin.mace.header", "&6&l⚒ Mace Control &8(&f{0}&8)", state);
+        tell(sender, "cmd.admin.mace.status",
+                "&7Forged: &d{0}&7/&d{1} &8· &7Remaining: &d{2}",
+                used, budget, Math.max(0, budget - used));
+    }
+
+    /** Ends an elimination ban early; mirrors what happens when the ban expires naturally. */
+    private boolean unban(CommandSender sender, String targetName) {
+        if (targetName == null || targetName.isBlank()) {
+            tell(sender, "cmd.admin.unban.usage", "&cUsage: /eclipse admin unban <player>");
+            return true;
+        }
+        Player online = Bukkit.getPlayerExact(targetName);
+        OfflinePlayer target = online != null ? online : Bukkit.getOfflinePlayer(targetName);
+        PlayerProfile profile = plugin.getProfileManager().getFresh(target.getUniqueId());
+
+        int resetTo = plugin.getSettings().getEliminationResetTo();
+        if (profile.getBannedUntil() <= 0 && profile.getBank() > plugin.getSettings().getEliminateAt()) {
+            tell(sender, "cmd.admin.unban.not-banned", "&e{0} &7is not banned.", targetName);
+            return true;
+        }
+
+        profile.setBannedUntil(0);
+        profile.setBank(resetTo);
+        plugin.getProfileManager().save(profile);
+        tell(sender, "cmd.admin.unban.success",
+                "&aUnbanned &f{0}&a. Their shard bank was reset to &d{1}&a.", targetName, resetTo);
+        if (online != null) {
+            plugin.getMessages().send(online, "elimination.ban-ended",
+                    "&aYour elimination ban has ended. Your shard bank was reset to &d{0}&a.", resetTo);
+        }
+        return true;
     }
 
     private boolean debug(CommandSender sender, String[] args) {
@@ -318,7 +452,14 @@ public final class EclipseCommand implements CommandExecutor, TabCompleter {
                     .filter(c -> c.toLowerCase().startsWith(args[0].toLowerCase()))
                     .toList();
         }
-        if (name.equals("top") || name.equals("withdraw") || name.equals("recipe")) {
+        if (name.equals("grace")) {
+            return args.length == 1 && "cancel".toLowerCase().startsWith(args[0].toLowerCase())
+                    ? List.of("cancel") : List.of();
+        }
+        if (name.equals("end")) {
+            return List.of();
+        }
+        if (name.equals("top") || name.equals("withdraw") || name.equals("recipes")) {
             return List.of();
         }
 
@@ -327,13 +468,17 @@ public final class EclipseCommand implements CommandExecutor, TabCompleter {
             completions.addAll(List.of("choose", "status", "shards", "top", "admin"));
         } else if (args[0].equalsIgnoreCase("admin") && sender.hasPermission("eclipse.smp.admin")) {
             if (args.length == 2) {
-                completions.addAll(List.of("trigger", "cancel", "reload"));
+                completions.addAll(List.of("trigger", "cancel", "unban", "mace", "reload"));
                 if (plugin.getSettings().isDebugEnabled()) {
                     completions.add("debug");
                 }
             } else if (args.length >= 3 && args[1].equalsIgnoreCase("debug")
                     && plugin.getSettings().isDebugEnabled()) {
                 completions.addAll(debugCommands.tabComplete(shift(args, 1)));
+            } else if (args.length == 3 && args[1].equalsIgnoreCase("unban")) {
+                Bukkit.getOnlinePlayers().forEach(p -> completions.add(p.getName()));
+            } else if (args.length == 3 && args[1].equalsIgnoreCase("mace")) {
+                completions.add("show");
             }
         } else if (args[0].equalsIgnoreCase("shards") && args.length == 2) {
             completions.addAll(List.of("deposit", "withdraw"));

@@ -9,6 +9,9 @@ import net.kingscraft.eclipseSMP.environment.SunlightDetector;
 import org.bukkit.Location;
 import org.bukkit.Particle;
 import org.bukkit.Sound;
+import org.bukkit.attribute.Attribute;
+import org.bukkit.attribute.AttributeInstance;
+import org.bukkit.enchantments.Enchantment;
 import org.bukkit.entity.ArmorStand;
 import org.bukkit.entity.LivingEntity;
 import org.bukkit.entity.Player;
@@ -16,6 +19,8 @@ import org.bukkit.event.EventHandler;
 import org.bukkit.event.Listener;
 import org.bukkit.event.player.PlayerQuitEvent;
 import org.bukkit.event.player.PlayerToggleSneakEvent;
+import org.bukkit.inventory.EntityEquipment;
+import org.bukkit.inventory.ItemStack;
 import org.bukkit.util.Vector;
 
 import java.util.ArrayDeque;
@@ -26,6 +31,9 @@ import java.util.UUID;
 import java.util.concurrent.ConcurrentHashMap;
 
 public final class SolFlare implements Listener {
+
+    /** Rough hit size used only inside the armor formula; the real damage is configured per flare. */
+    private static final double DESIRED_DAMAGE_ESTIMATE = 6.0;
 
     private final EclipseSMP plugin;
     private final Map<UUID, Deque<Long>> presses = new ConcurrentHashMap<>();
@@ -94,7 +102,7 @@ public final class SolFlare implements Listener {
         for (LivingEntity target : targets) {
             target.setFireTicks(Math.max(settings.getSolFlareFireTicks(), target.getFireTicks()));
             if (damage > 0) {
-                target.damage(damage, player);
+                target.damage(rawFor(damage, target), player);
             }
             Vector push = target.getLocation().toVector().subtract(loc.toVector());
             push.setY(0.4);
@@ -111,6 +119,48 @@ public final class SolFlare implements Listener {
 
         plugin.getMessages().actionBar(player, "flare.fired",
                 "&6☀ &7Solar Flare &fready in &7{0}s", settings.getSolFlareCooldownSeconds());
+    }
+
+    /**
+     * Scales the configured damage up so the target actually loses that many HP
+     * AFTER vanilla armor, toughness and Protection reduce the hit. Without this,
+     * a maxed diamond set eats ~90% of the flare and it ticks for half a heart.
+     */
+    private static double rawFor(double desiredDamage, LivingEntity target) {
+        double factor = mitigationFactor(target);
+        return Math.max(desiredDamage, desiredDamage / factor);
+    }
+
+    /** Estimated fraction of a hit vanilla mitigation lets through for this target. */
+    private static double mitigationFactor(LivingEntity target) {
+        double armor = attributeValue(target, Attribute.ARMOR);
+        double toughness = attributeValue(target, Attribute.ARMOR_TOUGHNESS);
+        // Vanilla armor formula: reduction = min(20, max(armor/5, armor - damage/(2+toughness/4)))/25
+        double reduction = 0;
+        if (armor > 0) {
+            reduction = Math.min(20.0,
+                    Math.max(armor / 5.0, armor - DESIRED_DAMAGE_ESTIMATE / (2.0 + toughness / 4.0)));
+        }
+        double afterArmor = 1.0 - reduction / 25.0;
+        double afterEnchants = 1.0 - protectionEpf(target) / 25.0;
+        return Math.max(0.05, afterArmor * afterEnchants);
+    }
+
+    private static double attributeValue(LivingEntity entity, Attribute attribute) {
+        AttributeInstance instance = entity.getAttribute(attribute);
+        return instance == null ? 0 : instance.getValue();
+    }
+
+    /** Combined Protection EPF of the target's armor (vanilla caps the total at 20). */
+    private static int protectionEpf(LivingEntity target) {
+        EntityEquipment equipment = target.getEquipment();
+        if (equipment == null) return 0;
+        int epf = 0;
+        for (ItemStack piece : equipment.getArmorContents()) {
+            if (piece == null || !piece.hasItemMeta()) continue;
+            epf += piece.getEnchantmentLevel(Enchantment.PROTECTION);
+        }
+        return Math.min(20, epf);
     }
 
     @EventHandler

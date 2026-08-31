@@ -16,7 +16,7 @@ commands:
       /eclipse status
       /eclipse shards [deposit <all|amount>|withdraw <amount>]
       /eclipse top
-      /eclipse admin <trigger|cancel|reload|debug>
+      /eclipse admin <trigger|cancel|unban <player>|reload|debug>
     permission: eclipse.smp.use
   top:
     description: Eclipse SMP shard leaderboard
@@ -30,10 +30,18 @@ commands:
     description: Withdraw Eclipse Shards from your bank
     usage: /withdraw [<amount>]
     permission: eclipse.smp.use
-  recipe:
+  recipes:
     description: View Eclipse crafting and anvil recipes
-    usage: /recipe
+    usage: /recipes
     permission: eclipse.smp.use
+  grace:
+    description: Start a PvP grace period
+    usage: /grace [minutes|cancel]
+    permission: eclipse.smp.admin
+  end:
+    description: Schedule the opening of the End portals
+    usage: /end [minutes]
+    permission: eclipse.smp.admin
 
 permissions:
   eclipse.smp.use:

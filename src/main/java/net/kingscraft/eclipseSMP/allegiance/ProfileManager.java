@@ -162,6 +162,22 @@ public final class ProfileManager implements Listener {
         }
         save(profile);
         convertGear(player);
+
+        plugin.getMessages().send(player, "choose.help.header",
+                "&6☀☾ &7Quick tips for your new path:");
+        plugin.getMessages().send(player, "choose.help.guide",
+                " &e/eclipse &7- main menu with your &fPowers Guide");
+        plugin.getMessages().send(player, "choose.help.status",
+                " &e/eclipse status &7- your power state & eclipse timer");
+        plugin.getMessages().send(player, "choose.help.choose",
+                " &e/eclipse choose &7- switch allegiance anytime (1st free, then &d{0}&7 shards)",
+                plugin.getSettings().getSwitchCost());
+        plugin.getMessages().send(player, "choose.help.recipes",
+                " &e/recipes &7- craft Eclipse gear (crafts to your allegiance)");
+        plugin.getMessages().send(player, "choose.help.shards",
+                " &e/eclipse shards deposit|withdraw &7- manage your shard bank");
+        plugin.getMessages().send(player, "choose.help.aliases",
+                " &e/deposit [all|n] &7· &e/withdraw [n] &7- quick bank shortcuts");
         return null;
     }
 

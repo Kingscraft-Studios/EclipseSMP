@@ -220,7 +220,7 @@ public final class Settings {
     }
 
     public double getSolFlareDamage() {
-        return cfg.getDouble("sol.flare.damage", 3.0);
+        return cfg.getDouble("sol.flare.damage", 6.0);
     }
 
     public int getSolFlareWindowMs() {
@@ -291,6 +291,78 @@ public final class Settings {
 
     public int getEliminateAt() {
         return cfg.getInt("shards.eliminate-at", -5);
+    }
+
+    /** How long after hitting someone a player can still be credited as killer on their death. */
+    public long getCombatTagMillis() {
+        return cfg.getLong("shards.combat-tag-seconds", 60) * 1000L;
+    }
+
+    public boolean isShardRecipeEnabled() {
+        return cfg.getBoolean("shards.recipe.enabled", true);
+    }
+
+    /** The shard recipe is only usable while bank + carried shards stay BELOW this. */
+    public int getShardRecipeMaxOwned() {
+        return cfg.getInt("shards.recipe.max-owned", 3);
+    }
+
+    public int getShardRecipeYield() {
+        return cfg.getInt("shards.recipe.yield", 1);
+    }
+
+    /** Minimum time between two shard crafts per player (chest-stash proof). */
+    public long getShardRecipeCooldownMillis() {
+        return cfg.getLong("shards.recipe.cooldown-minutes", 30) * 60_000L;
+    }
+
+    /** Total shards one player can ever forge with this recipe. */
+    public int getShardRecipeLifetimeCap() {
+        return cfg.getInt("shards.recipe.lifetime-cap", 16);
+    }
+
+    /** Shard forging costs as MATERIAL:COUNT entries (max 9 grid slots). */
+    public List<String> getShardRecipeIngredients() {
+        return cfg.getStringList("shards.recipe.ingredients");
+    }
+
+    // ---- mace control -----------------------------------------------
+    public boolean isMaceControlEnabled() {
+        return cfg.getBoolean("mace-control.enabled", true);
+    }
+
+    public int getMaceMaxCrafted() {
+        return cfg.getInt("mace-control.max-crafted", 2);
+    }
+
+    // ---- vanilla recipe tweaks --------------------------------------
+    public boolean isGoldenAppleTweakEnabled() {
+        return cfg.getBoolean("vanilla-tweaks.golden-apple", true);
+    }
+
+    public boolean isCobwebTweakEnabled() {
+        return cfg.getBoolean("vanilla-tweaks.cobweb", true);
+    }
+
+    public boolean isAnvilTweakEnabled() {
+        return cfg.getBoolean("vanilla-tweaks.anvil", true);
+    }
+
+    public boolean isTotemTweakEnabled() {
+        return cfg.getBoolean("vanilla-tweaks.totem", true);
+    }
+
+    // ---- season (/grace and /end) -----------------------------------
+    public int getSeasonGraceMinutes() {
+        return cfg.getInt("season.grace-minutes", 15);
+    }
+
+    public int getSeasonEndTimerMinutes() {
+        return cfg.getInt("season.end-timer-minutes", 30);
+    }
+
+    public boolean isEndPortalsStartOpen() {
+        return cfg.getBoolean("season.end-portals-start-open", false);
     }
 
     // ---- elimination ------------------------------------------------

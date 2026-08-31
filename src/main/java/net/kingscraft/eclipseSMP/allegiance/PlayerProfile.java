@@ -13,6 +13,8 @@ public final class PlayerProfile {
     private int kills;
     private int switches;
     private long bannedUntil;
+    private int shardCraftedTotal;
+    private long lastShardCraft;
 
     public PlayerProfile(UUID uuid) {
         this.uuid = uuid;
@@ -89,6 +91,22 @@ public final class PlayerProfile {
         this.bannedUntil = bannedUntil;
     }
 
+    public int getShardCraftedTotal() {
+        return shardCraftedTotal;
+    }
+
+    public void setShardCraftedTotal(int shardCraftedTotal) {
+        this.shardCraftedTotal = shardCraftedTotal;
+    }
+
+    public long getLastShardCraft() {
+        return lastShardCraft;
+    }
+
+    public void setLastShardCraft(long lastShardCraft) {
+        this.lastShardCraft = lastShardCraft;
+    }
+
     public void load(YamlConfiguration yaml) {
         String a = yaml.getString("allegiance");
         this.allegiance = a == null ? null : Allegiance.valueOf(a);
@@ -97,6 +115,8 @@ public final class PlayerProfile {
         this.kills = yaml.getInt("kills", 0);
         this.switches = yaml.getInt("switches", 0);
         this.bannedUntil = yaml.getLong("banned-until", 0);
+        this.shardCraftedTotal = yaml.getInt("crafted-shards", 0);
+        this.lastShardCraft = yaml.getLong("last-shard-craft", 0);
     }
 
     public void save(YamlConfiguration yaml) {
@@ -110,5 +130,7 @@ public final class PlayerProfile {
         yaml.set("kills", kills);
         yaml.set("switches", switches);
         yaml.set("banned-until", bannedUntil);
+        yaml.set("crafted-shards", shardCraftedTotal);
+        yaml.set("last-shard-craft", lastShardCraft);
     }
 }

@@ -67,8 +67,9 @@ sol:
     cooldown-seconds: 15
     radius: 4.0
     fire-ticks: 60
-    # Instant damage dealt to everyone caught in the blast.
-    damage: 3.0
+    # Damage targets actually lose AFTER their armor/Protection mitigate the hit.
+    # The flare auto-scales the raw hit so maxed diamond doesn't shrug it off.
+    damage: 6.0
     knockback-power: 1.2
     # Two sneak presses within this window trigger the flare.
     double-tap-window-ms: 400
@@ -144,6 +145,66 @@ shards:
   non-eclipse-pvp-loss: 1
   # When the bank drops to or below this value the player is eliminated.
   eliminate-at: -5
+  # How long (seconds) after damaging someone you stay credited as their killer.
+  # Hits older than this can never claim shards when the victim dies later.
+  combat-tag-seconds: 10
+
+  # Catch-up crafting: sun (glowstone dust) meets moon (lapis lazuli)
+  # over amethyst shards to forge new Eclipse Shards.
+  recipe:
+    enabled: true
+    # Only usable while your bank + carried shards are BELOW this number.
+    max-owned: 3
+    # Shards produced per craft.
+    yield: 1
+    # Minimum time between two shard crafts per player (chest-stash proof).
+    cooldown-minutes: 15
+    # Total shards one player can ever forge with this recipe.
+    lifetime-cap: 20
+    # What it costs to forge ONE Eclipse Shard. Format: MATERIAL:COUNT.
+    # Each grid cell holds a single item, so counts are capped at 9 total.
+    # Shards are the economy — the default is a real grind:
+    # an Ancient City echo shard, diamond, gold, amethyst, glowstone and lapis.
+    ingredients:
+      - "ECHO_SHARD:1"
+      - "DIAMOND:1"
+      - "GOLD_INGOT:1"
+      - "AMETHYST_SHARD:2"
+      - "GLOWSTONE_DUST:2"
+      - "LAPIS_LAZULI:2"
+
+# -------------------------------------------------------------
+#  Mace control
+# -------------------------------------------------------------
+mace-control:
+  # Gate vanilla Mace crafting behind a server-wide lifetime budget.
+  enabled: true
+  # How many Maces can ever be handcrafted on the server. 0 = none.
+  max-crafted: 2
+
+# -------------------------------------------------------------
+#  Vanilla recipe tweaks
+# -------------------------------------------------------------
+vanilla-tweaks:
+  # Golden apple: 4 gold ingots around an apple (instead of 8).
+  golden-apple: true
+  # Craftable cobweb: 5 string in an X shape.
+  cobweb: true
+  # Anvil: 7 iron ingots total (the old 3 iron blocks become ingots).
+  anvil: true
+  # Craftable Totem of Undying: diamond core, emerald block left/right, gold body.
+  totem: true
+
+# -------------------------------------------------------------
+#  Season control (/grace and /end)
+# -------------------------------------------------------------
+season:
+  # Default length of /grace in minutes (PvP disabled).
+  grace-minutes: 15
+  # Default countdown for /end in minutes until the End portals open.
+  end-timer-minutes: 30
+  # When false, the End stays sealed until an admin runs /end.
+  end-portals-start-open: false
 
 # -------------------------------------------------------------
 #  Elimination (death ban & grace)
@@ -290,6 +351,10 @@ messages:
   shards.no-carried: "&cYou have no carried Eclipse Shards to deposit."
   shards.withdrew: "&aWithdrew &d{0} Eclipse Shard &afrom your bank."
   shards.bank-empty: "&cYour bank is empty."
+  shards.recipe-cooldown: "&cYou can forge your next Eclipse Shard in &f{0}&c."
+  shards.recipe-cap: "&cYou have reached your lifetime limit of &d{0} &cforged Eclipse Shards."
+  shards.recipe-too-rich: "&cYou own too many Eclipse Shards (&d{0}+&c) to forge more."
+  shards.recipe-one-at-a-time: "&cForge shards one at a time."
 
   # Elimination
   elimination.broadcast: "&4☀☾ &c{0} &4was eliminated! &7Their shard bank hit the limit. Banned for &f{1} &7minutes."
@@ -297,6 +362,29 @@ messages:
   elimination.login-kick: "&4You were eliminated!\n&cYou may rejoin in {0} minutes."
   elimination.still-banned: "&cYou may rejoin in {0} minutes."
   elimination.ban-ended: "&aYour elimination ban has ended. Your shard bank was reset to &d{0}&a."
+
+  # Grace period (/grace)
+  grace.started: "&a☀ &fPvP is disabled! &7Grace period active for &f{0}&7."
+  grace.broadcast: "&7Grace period ends in &f{0}&7."
+  grace.expired: "&c⚔ &fGrace period over — PvP is now enabled!"
+  grace.cancelled: "&eGrace period cancelled. PvP is enabled."
+  grace.not-active: "&7No grace period is active."
+
+  # End portal opening (/end)
+  end.timer-started: "&5☀ &fThe End Portals open in &f{0}&7!"
+  end.countdown: "&5☾ &fThe End opens in &f{0}&7"
+  end.opened: "&d☀☾ &fThe End Portals are OPEN! &5☽☀"
+  end.subtitle: "&7Claim the dragon's hoard"
+  end.already-open: "&cThe End is already open."
+  end.locked-portal: "&cThe End is sealed!"
+
+  # PvP gating
+  pvp.grace-blocked: "&cPvP is disabled during the grace period!"
+
+  # Mace control
+  mace.cap-reached: "&cNo more Maces can be crafted! &7(&d{0}&7/&d{1}&7 already forged)"
+  mace.forged: "&6⚒ &f{0} &7forged a Mace! &7(&d{1}&7/&d{2}&7 budget used)"
+  mace.crafter-denied: "&cCrafting a Mace via a Crafter is not allowed! Forge it by hand."
 
   # Allegiance switching
   choose.already-follower: "&eYou are already a follower of {0}."
@@ -344,9 +432,19 @@ messages:
   cmd.admin.header: "&6&lEclipse Admin Commands:"
   cmd.admin.trigger: "&e/eclipse admin trigger &7- start the Blood Eclipse now"
   cmd.admin.cancel: "&e/eclipse admin cancel &7- stop an ongoing eclipse"
+  cmd.admin.unban: "&e/eclipse admin unban <player> &7- end an elimination ban"
+  cmd.admin.unban.usage: "&cUsage: /eclipse admin unban <player>"
+  cmd.admin.unban.not-banned: "&e{0} &7is not banned."
+  cmd.admin.unban.success: "&aUnbanned &f{0}&a. Their shard bank was reset to &d{1}&a."
+  cmd.admin.mace: "&e/eclipse admin mace <show|n> &7- manage the Mace crafting budget"
+  cmd.admin.mace.usage: "&cUsage: /eclipse admin mace <show|n> &7(positive = mark as already forged, negative = refund budget)"
+  cmd.admin.mace.header: "&6&l⚒ Mace Control &8(&f{0}&8)"
+  cmd.admin.mace.status: "&7Forged: &d{0}&7/&d{1} &8· &7Remaining: &d{2}"
+  cmd.admin.mace.added: "&aMarked &f{0} &aMace(s) as forged."
+  cmd.admin.mace.refunded: "&aRefunded &f{0} &aMace(s) of budget."
   cmd.admin.reload: "&e/eclipse admin reload &7- reload config"
   cmd.admin.debug: "&e/eclipse admin debug &7- debug commands (debug.enabled)"
-  cmd.admin.unknown: "&cUnknown admin command. Use &e/eclipse admin trigger|cancel|reload{0}&c."
+  cmd.admin.unknown: "&cUnknown admin command. Use &e/eclipse admin trigger|cancel|unban|mace|reload{0}&c."
   cmd.debug.disabled: "&cDebug commands are disabled. Enable &e'debug.enabled' &cin config.yml."
   cmd.eclipse-already: "&cAn eclipse is already underway."
   cmd.eclipse-cancelled: "&aEclipse cancelled."
