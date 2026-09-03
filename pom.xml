@@ -6,7 +6,7 @@
 
     <groupId>net.kingscraft</groupId>
     <artifactId>eclipsesmp</artifactId>
-    <version>1.2</version>
+    <version>1.4</version>
     <packaging>jar</packaging>
 
     <name>eclipsesmp</name>
